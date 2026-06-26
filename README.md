@@ -400,7 +400,7 @@ PharmaWatch AI can assist:
 
 # 👨‍💻 Developed By
 
-**Ram Sai**
+**Code Force Team**
 
 B.Tech – Computer Science & Engineering (Artificial Intelligence & Machine Learning)
 
