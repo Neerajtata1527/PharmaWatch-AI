@@ -402,8 +402,6 @@ PharmaWatch AI can assist:
 
 **Code Force Team**
 
-B.Tech – Computer Science & Engineering (Artificial Intelligence & Machine Learning)
-
 Passionate about building intelligent AI systems that solve real-world healthcare challenges through Machine Learning, Large Language Models, and Multi-Agent AI.
 
 ---
