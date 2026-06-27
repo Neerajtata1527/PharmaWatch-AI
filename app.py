@@ -373,7 +373,7 @@ if page == "🏠 Dashboard":
             )
 
             st.markdown("**Risk Level** &nbsp;" + risk_badge(getattr(top, "overall_risk", "")), unsafe_allow_html=True)
-            st.markdown(f"**Reason:** {getattr(top, 'reason', getattr(top, 'summary', '—'))}")
+            st.markdown(f"**Reason:** {getattr(top, 'reasoning', '—')}")
 
             actions = safe_list(getattr(top, "recommended_actions", getattr(top, "actions", [])))
             if actions:
@@ -535,10 +535,11 @@ elif page == "⚠️ Risk Assessment":
                 estimated_shortage_time = getattr(rr, "estimated_shortage_time", getattr(rr, "shortage", "Unknown"))
 
                 with st.expander(
-                    f"{i+1}. {headline[:80]} — "
-                    + risk_badge(overall_risk),
+                    f"{i+1}. {headline[:80]} — {overall_risk}",
                     expanded=(i == 0),
                 ):
+                    st.markdown(risk_badge(overall_risk), unsafe_allow_html=True)
+
                     c1, c2, c3, c4 = st.columns(4)
                     c1.metric("Risk Level",   overall_risk)
                     c2.metric("Risk Score",   f"{risk_score}/100")
@@ -546,7 +547,7 @@ elif page == "⚠️ Risk Assessment":
                     c4.metric("Shortage ETA", str(estimated_shortage_time))
 
                     st.markdown("**Reasoning**")
-                    st.write(getattr(rr, "reason", getattr(rr, "summary", "—")))
+                    st.write(getattr(rr, "reasoning", "—"))
 
                     actions = safe_list(getattr(rr, "recommended_actions", getattr(rr, "actions", [])))
                     if actions:
