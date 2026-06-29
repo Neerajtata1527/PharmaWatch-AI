@@ -34,6 +34,28 @@ from agents.alternatives_agent import AlternativesAgent
 # PAGE CONFIG
 # ==========================================================
 
+LOADING_MESSAGES = [
+
+    "🌍 Searching live global news...",
+
+    "📦 Looking for supply-chain disruptions...",
+
+    "🏭 Checking manufacturing facilities...",
+
+    "🚢 Mapping shipping routes...",
+
+    "🧠 Researching pharmaceutical evidence...",
+
+    "💊 Identifying affected medicines...",
+
+    "⚠️ Calculating shortage risk...",
+
+    "🏥 Building hospital recommendations...",
+
+    "✨ Almost there...",
+
+]
+
 st.set_page_config(
     page_title="PharmaWatch AI",
     page_icon="💊",
@@ -157,23 +179,160 @@ if "run_timestamp" not in st.session_state:
 # HELPERS
 # ==========================================================
 
-def run_pipeline():
+def run_pipeline(progress_bar, status_box, timer_box):
+
+    start_time = time.time()
+
+    def update(progress, message):
+        elapsed = int(time.time() - start_time)
+
+        mins = elapsed // 60
+        secs = elapsed % 60
+
+        progress_bar.progress(progress)
+
+        status_box.info(message)
+
+        timer_box.caption(
+            f"⏱ Elapsed Time : {mins:02d}:{secs:02d}"
+        )
+
+    # =====================================================
+    # Fetch News
+    # =====================================================
+
+    update(
+        5,
+        "🌍 Connecting to NewsAPI & GDELT..."
+    )
+
     news_service = NewsService()
     gdelt_service = GDELTService()
+
     news_articles = news_service.fetch_latest_news()
     gdelt_articles = gdelt_service.fetch_latest_events()
+
     articles = news_articles + gdelt_articles
 
+    update(
+        15,
+        f"📰 Collected {len(articles)} live news articles."
+    )
+
+    # =====================================================
+    # Event Detection
+    # =====================================================
+
+    update(
+        20,
+        "🔎 Detecting global supply-chain disruptions..."
+    )
+
     event_agent = EventAgent()
-    events = event_agent.process_articles(articles)
+
+    events = event_agent.process_articles(
+        articles
+    )
+
+    update(
+        35,
+        f"✅ Identified {len(events)} relevant global events."
+    )
+
+    # =====================================================
+    # Research Agent
+    # =====================================================
+
+    research_messages = [
+
+        "🧠 Researching pharmaceutical evidence...",
+
+        "🌍 Searching trusted web sources...",
+
+        "🏭 Mapping manufacturers and API suppliers...",
+
+        "🚢 Checking logistics, ports and shipping routes...",
+
+        "📦 Correlating geopolitical events with pharma supply chains...",
+
+        "🔬 Verifying evidence before generating reports...",
+
+    ]
+
+    research_progress = [40, 45, 50, 55, 60, 65]
+
+    for progress, message in zip(
+        research_progress,
+        research_messages,
+    ):
+
+        update(progress, message)
+
+        time.sleep(0.2)
 
     research_agent = ResearchAgent()
-    research_reports = research_agent.process_events(events)
+
+    research_reports = research_agent.process_events(
+        events
+    )
+
+    update(
+        72,
+        f"✅ Generated {len(research_reports)} research reports."
+    )
+
+    # =====================================================
+    # Risk Assessment
+    # =====================================================
+
+    risk_messages = [
+
+        "⚠️ Assessing medicine shortage risks...",
+
+        "📈 Estimating disruption severity...",
+
+        "💊 Identifying affected medicines...",
+
+        "🏥 Evaluating hospital impact...",
+
+        "📊 Computing confidence scores...",
+
+        "✨ Almost there..."
+
+    ]
+
+    risk_progress = [75, 80, 84, 88, 92, 96]
+
+    for progress, message in zip(
+        risk_progress,
+        risk_messages,
+    ):
+
+        update(progress, message)
+
+        time.sleep(0.2)
 
     risk_agent = RiskAgent()
-    risk_reports = risk_agent.process_reports(research_reports)
 
-    return articles, events, research_reports, risk_reports
+    risk_reports = risk_agent.process_reports(
+        research_reports
+    )
+
+    # =====================================================
+    # Complete
+    # =====================================================
+
+    update(
+        100,
+        "🎉 Analysis completed successfully!"
+    )
+
+    return (
+        articles,
+        events,
+        research_reports,
+        risk_reports,
+    )
 
 
 def risk_color(level: str) -> str:
@@ -306,31 +465,28 @@ if page == "🏠 Dashboard":
             st.info("Click **Run Pipeline** to fetch live news and run all AI agents.")
 
     if run_btn:
-        prog = st.progress(0, text="Starting pipeline…")
-        with st.spinner(""):
-            prog.progress(10, text="Fetching NewsAPI articles…")
-            time.sleep(0.3)
-            prog.progress(25, text="Fetching GDELT events…")
-            time.sleep(0.3)
-            prog.progress(45, text="Running Event Agent…")
-            time.sleep(0.3)
-            prog.progress(65, text="Running Research Agent…")
-            time.sleep(0.3)
-            prog.progress(80, text="Running Risk Agent…")
-
-            (
-                st.session_state.articles,
-                st.session_state.events,
-                st.session_state.research_reports,
-                st.session_state.risk_reports,
-            ) = run_pipeline()
-
-            st.session_state.pipeline_run = True
-            st.session_state.run_timestamp = datetime.now().strftime("%d %b %Y %H:%M")
-
-        prog.progress(100, text="Done!")
-        time.sleep(0.4)
-        prog.empty()
+        progress_bar = st.progress(0)
+        status_box = st.empty()
+        timer_box = st.empty()
+        checklist = st.empty()
+        (
+            st.session_state.articles,
+            st.session_state.events,
+            st.session_state.research_reports,
+            st.session_state.risk_reports,
+        ) = run_pipeline(
+            progress_bar,
+            status_box,
+            timer_box,
+        )
+        checklist.success("✅ News Collection Complete")
+        checklist.success("✅ Event Intelligence Complete")
+        checklist.success("✅ Research Analysis Complete")
+        checklist.success("✅ Risk Assessment Complete")
+        st.session_state.pipeline_run = True
+        st.session_state.run_timestamp = datetime.now().strftime(
+            "%d %b %Y %H:%M")
+        time.sleep(1)
         st.rerun()
 
     if st.session_state.pipeline_run and st.session_state.risk_reports:
