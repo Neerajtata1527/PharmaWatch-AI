@@ -1,44 +1,63 @@
 import os
 from pathlib import Path
-
 from dotenv import load_dotenv
 
-# =====================================================
-# PATHS
-# =====================================================
+# -------------------------------------------------------
+# Load local .env (only for local development)
+# -------------------------------------------------------
 
 BASE_DIR = Path(__file__).resolve().parent
 ENV_FILE = BASE_DIR / ".env"
 
-# =====================================================
-# LOAD ENVIRONMENT VARIABLES
-# =====================================================
-
 if ENV_FILE.exists():
-    load_dotenv(dotenv_path=ENV_FILE, override=True)
+    load_dotenv(ENV_FILE)
 
-# =====================================================
+# -------------------------------------------------------
+# Streamlit Secrets Support
+# -------------------------------------------------------
+
+try:
+    import streamlit as st
+
+    def get_secret(key: str):
+        return (
+            os.getenv(key)
+            or st.secrets.get(key)
+        )
+
+except Exception:
+
+    def get_secret(key: str):
+        return os.getenv(key)
+
+# -------------------------------------------------------
 # API KEYS
-# =====================================================
+# -------------------------------------------------------
 
-NEWS_API_KEY = os.getenv("NEWS_API_KEY")
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-TAVILY_API_KEY = os.getenv("TAVILY_API_KEY")
+NEWS_API_KEY = get_secret("NEWS_API_KEY")
 
-# =====================================================
-# DEDICATED KEYS FOR ALTERNATIVES AGENT
-# =====================================================
+GROQ_API_KEY = get_secret("GROQ_API_KEY")
 
-TAVILY_API_KEY_ALTERNATIVES = (
-    os.getenv("TAVILY_API_KEY_ALTERNATIVES")
-    or TAVILY_API_KEY
+TAVILY_API_KEY = get_secret("TAVILY_API_KEY")
+
+# -------------------------------------------------------
+# Alternatives Agent Keys
+# -------------------------------------------------------
+
+NEWS_API_KEY_ALTERNATIVES = (
+    get_secret("NEWS_API_KEY_ALTERNATIVES")
+    or NEWS_API_KEY
 )
 
 GROQ_API_KEY_ALTERNATIVES = (
-    os.getenv("GROQ_API_KEY_ALTERNATIVES")
+    get_secret("GROQ_API_KEY_ALTERNATIVES")
     or GROQ_API_KEY
 )
 
+TAVILY_API_KEY_ALTERNATIVES = (
+    get_secret("TAVILY_API_KEY_ALTERNATIVES")
+    or TAVILY_API_KEY
+)
 # =====================================================
 # NEWS API
 # =====================================================
