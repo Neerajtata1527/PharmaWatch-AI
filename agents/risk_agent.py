@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import List
 
 from models.research_schema import ResearchReport
@@ -14,47 +15,74 @@ class RiskAgent:
     ----------------
     1. Receive ResearchReports.
     2. Perform pharmaceutical risk assessment.
-    3. Generate actionable recommendations.
-    4. Return structured RiskReports.
+    3. Generate recommendations.
+    4. Execute multiple assessments in parallel.
     """
+
+    def _process_single_report(
+        self,
+        report: ResearchReport,
+    ) -> RiskReport | None:
+
+        try:
+
+            print("\n" + "=" * 100)
+            print(f"Assessing Risk : {report.headline}")
+            print("=" * 100)
+
+            risk_report = assess_risk(report)
+
+            print("✓ Risk assessment completed")
+
+            return risk_report
+
+        except Exception as e:
+
+            print(
+                f"\nRisk Assessment Failed\n"
+                f"Headline : {report.headline}\n"
+                f"Reason   : {e}\n"
+            )
+
+            return None
 
     def process_reports(
         self,
         reports: List[ResearchReport],
     ) -> List[RiskReport]:
 
+        if not reports:
+            return []
+
         risk_reports: List[RiskReport] = []
 
-        if not reports:
-            return risk_reports
+        workers = min(5, len(reports))
 
-        total = len(reports)
+        print(
+            f"\nRunning {len(reports)} risk assessments "
+            f"using {workers} worker threads...\n"
+        )
 
-        for index, report in enumerate(reports, start=1):
+        with ThreadPoolExecutor(max_workers=workers) as executor:
 
-            print("\n" + "=" * 100)
-            print(f"[{index}/{total}] Assessing Risk")
-            print("=" * 100)
-
-            print(f"Headline : {report.headline}")
-            print(f"Event Type : {report.event_type}")
-            print()
-
-            try:
-
-                risk_report = assess_risk(report)
-
-                risk_reports.append(risk_report)
-
-                print("✓ Risk assessment completed")
-
-            except Exception as e:
-
-                print(
-                    f"\nRisk Assessment Failed\n"
-                    f"Headline : {report.headline}\n"
-                    f"Reason : {e}\n"
+            futures = [
+                executor.submit(
+                    self._process_single_report,
+                    report,
                 )
+                for report in reports
+            ]
+
+            for future in as_completed(futures):
+
+                risk_report = future.result()
+
+                if risk_report is not None:
+                    risk_reports.append(risk_report)
+
+        print(
+            f"\n✓ Generated {len(risk_reports)} risk reports.\n"
+        )
 
         return risk_reports
 
@@ -70,10 +98,6 @@ if __name__ == "__main__":
 
     from agents.event_agent import EventAgent
     from agents.research_agent import ResearchAgent
-
-    # ------------------------------------------------------
-    # Fetch News
-    # ------------------------------------------------------
 
     print("\nFetching latest news...\n")
 
@@ -101,7 +125,7 @@ if __name__ == "__main__":
         raise SystemExit("No relevant events found.")
 
     # ------------------------------------------------------
-    # Research Agent
+    # Research
     # ------------------------------------------------------
 
     research_agent = ResearchAgent()
@@ -114,7 +138,7 @@ if __name__ == "__main__":
         raise SystemExit("No research reports generated.")
 
     # ------------------------------------------------------
-    # Risk Agent
+    # Risk Assessment
     # ------------------------------------------------------
 
     risk_agent = RiskAgent()
@@ -124,7 +148,7 @@ if __name__ == "__main__":
     )
 
     # ------------------------------------------------------
-    # Display Final Reports
+    # Results
     # ------------------------------------------------------
 
     print("\n")

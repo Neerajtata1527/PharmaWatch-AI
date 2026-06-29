@@ -10,8 +10,8 @@ class ResearchService:
     for a given EventReport.
     """
 
-    MIN_SCORE = 0.35
-    MAX_RESULTS = 8
+    MIN_SCORE = 0.30
+    MAX_RESULTS = 10
     MAX_CONTENT_LENGTH = 800
 
     def __init__(self):
@@ -73,101 +73,57 @@ class ResearchService:
     # ==========================================================
     # QUERY BUILDER
     # ==========================================================
-
     def _build_query(
-        self,
-        event: EventReport,
-    ) -> str:
+    self,
+    event: EventReport,
+) -> str:
+        headline = (event.headline or "").strip()
+        location = (event.location or "").strip()
+        event_type = event.event_type or ""
+        event_keywords = {
 
-        headline = event.headline or ""
-        location = event.location or ""
+        "Shipping Disruption":
+            "shipping ports logistics API imports",
 
-        match event.event_type:
+        "Natural Disaster":
+            "pharmaceutical factories manufacturing logistics",
 
-            case "Shipping Disruption":
+        "Trade Restriction":
+            "drug exports API imports sanctions",
 
-                keywords = (
-                    "pharma supply chain "
-                    "shipping routes "
-                    "API imports "
-                    "logistics"
-                )
+        "Manufacturing Disruption":
+            "API manufacturers pharmaceutical production",
 
-            case "Natural Disaster":
+        "Public Health Event":
+            "medicine demand drug manufacturing",
 
-                keywords = (
-                    "pharma manufacturing "
-                    "drug factories "
-                    "logistics "
-                    "transport"
-                )
+        "Infrastructure Failure":
+            "ports airports logistics transport",
 
-            case "Trade Restriction":
+        "Regulatory Action":
+            "FDA WHO pharmaceutical regulation",
 
-                keywords = (
-                    "drug imports "
-                    "medicine exports "
-                    "API supply chain "
-                    "trade sanctions"
-                )
+        "Economic Disruption":
+            "fuel prices pharmaceutical supply chain",
 
-            case "Manufacturing Disruption":
+        "Geopolitical Conflict":
+            "Strait of Hormuz sanctions shipping API supply chain",
 
-                keywords = (
-                    "API manufacturers "
-                    "drug production "
-                    "factory shutdown"
-                )
-
-            case "Public Health Event":
-
-                keywords = (
-                    "medicine demand "
-                    "drug manufacturing "
-                    "healthcare supply chain"
-                )
-
-            case "Infrastructure Failure":
-
-                keywords = (
-                    "ports "
-                    "airports "
-                    "transport "
-                    "pharma logistics"
-                )
-
-            case "Regulatory Action":
-
-                keywords = (
-                    "FDA "
-                    "WHO "
-                    "drug regulation "
-                    "pharmaceutical industry"
-                )
-
-            case "Economic Disruption":
-
-                keywords = (
-                    "pharmaceutical trade "
-                    "medicine supply chain "
-                    "manufacturing"
-                )
-
-            case "Geopolitical Conflict":
-
-                keywords = (
-                    "pharmaceutical supply chain "
-                    "API imports "
-                    "shipping routes "
-                    "trade impact"
-                )
-
-            case _:
-
-                keywords = "pharmaceutical supply chain"
-
-        return f"{headline} {location} {keywords}"
-
+    }
+        keywords = event_keywords.get(
+        event_type,
+        "pharmaceutical supply chain",
+    )
+        query_parts = [
+        headline,
+        location,
+        keywords,
+        "medicine shortages",
+    ]
+        query = " ".join(
+        part for part in query_parts if part
+    )
+        return query[:350]
     # ==========================================================
     # FILTER RESULTS
     # ==========================================================
@@ -227,7 +183,7 @@ class ResearchService:
         formatted = []
 
         for i, result in enumerate(
-            results,
+            results[:5],
             start=1,
         ):
 

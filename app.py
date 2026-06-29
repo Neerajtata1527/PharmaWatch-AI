@@ -1022,7 +1022,7 @@ elif page == "ℹ️ About":
 
     st.markdown("""
 **PharmaWatch AI** is a real-time pharmaceutical supply chain intelligence platform
-built for the **Confluence Hackathon** by **Team Ram Sai**.
+built for the **Confluence Hackathon** by **Code Force**.
 
 #### What it does
 - Monitors global news and geopolitical events (NewsAPI + GDELT)
@@ -1057,7 +1057,7 @@ Research Agent  (Tavily web search + LLM synthesis)
 ```
 
 #### Team
-Built with ❤️ by **CodeForce Team** · Confluence Hackathon
+Built with ❤️ by **Code Force Team** · Confluence Hackathon
     """)
 
 

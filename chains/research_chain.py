@@ -10,6 +10,7 @@ from models.event_schema import EventReport
 from models.research_schema import ResearchReport
 
 
+
 # ==========================================================
 # Prompt
 # ==========================================================

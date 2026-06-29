@@ -2,171 +2,201 @@ from typing import List
 
 from models.raw_article import RawArticle
 
-
-# --------------------------------------------------
-# Articles containing these keywords are immediately
-# discarded before reaching the LLM.
-# --------------------------------------------------
+# ==========================================================
+# Hard Block List
+# ==========================================================
 
 NOISE_KEYWORDS = {
 
     # Sports
-    "football",
-    "soccer",
-    "cricket",
-    "nba",
-    "ipl",
-    "fifa",
-    "tennis",
-    "golf",
-    "olympics",
-    "world cup",
+    "football", "soccer", "cricket", "nba", "ipl", "fifa",
+    "tennis", "golf", "olympics", "world cup", "formula 1",
+    "motogp", "wimbledon", "uefa",
 
     # Entertainment
-    "movie",
-    "movies",
-    "film",
-    "actor",
-    "actress",
-    "celebrity",
-    "hollywood",
-    "bollywood",
-    "music",
-    "concert",
-    "album",
-    "netflix",
-    "marvel",
-    "avatar",
+    "movie", "movies", "film", "actor", "actress",
+    "celebrity", "hollywood", "bollywood", "music",
+    "concert", "album", "netflix", "marvel", "avatar",
+    "tv series", "box office",
 
     # Gaming
-    "gaming",
-    "xbox",
-    "playstation",
-    "nintendo",
-    "steam",
+    "gaming", "xbox", "playstation", "nintendo",
+    "steam", "esports",
 
-    # Shopping / Deals
-    "deal",
-    "discount",
-    "coupon",
-    "sale",
-    "prime day",
-    "black friday",
+    # Shopping
+    "discount", "deal", "coupon", "sale",
+    "black friday", "prime day",
 
-    # Product Reviews
-    "review",
-    "benchmark",
-    "driver",
-    "firmware",
-    "motherboard",
-    "graphics card",
-    "gpu",
-    "cpu",
+    # Reviews
+    "review", "benchmark", "gpu", "cpu",
+    "motherboard", "graphics card",
+    "firmware", "driver",
 
-    # Misc
-    "recipe",
-    "fashion",
-    "travel guide",
+    # Lifestyle
+    "recipe", "fashion", "travel guide",
+    "celeb", "wedding",
+
+    # Finance noise
+    "stock picks",
+    "stocks we think twice about",
+    "earnings preview",
+    "quarterly results",
+    "premium growth",
+    "share price",
+    "ipo",
+    "mutual fund",
+
+    # Crypto
+    "bitcoin",
+    "ethereum",
+    "crypto",
+    "token",
+    "coin",
+    "blockchain",
+    "nft",
 }
 
-
-# --------------------------------------------------
-# Articles containing these keywords are likely
-# important for PharmaWatch.
-# --------------------------------------------------
+# ==========================================================
+# Strong Supply Chain Keywords
+# ==========================================================
 
 IMPORTANT_KEYWORDS = {
 
     # Geopolitics
     "war",
-    "missile",
     "conflict",
+    "missile",
     "attack",
-    "military",
     "terror",
     "sanction",
     "embargo",
+    "navy",
+    "military",
+    "border",
 
     # Shipping
     "shipping",
     "cargo",
+    "container",
     "port",
     "harbor",
     "vessel",
-    "container",
-    "logistics",
     "freight",
+    "logistics",
+    "shipping lane",
     "trade route",
-
-    # Manufacturing
-    "factory",
-    "manufacturing",
-    "production",
-    "industrial",
-    "plant",
+    "strait",
+    "hormuz",
+    "red sea",
+    "suez",
 
     # Trade
     "trade",
+    "tariff",
     "export",
     "import",
-    "tariff",
+    "restriction",
+    "quota",
+
+    # Manufacturing
+    "factory",
+    "plant",
+    "production",
+    "manufacturing",
+    "shutdown",
+    "closure",
+    "strike",
+
+    # Raw Materials
+    "chemical",
+    "api",
+    "active pharmaceutical ingredient",
+    "rare earth",
+    "lithium",
+    "fertilizer",
+
+    # Pharma
+    "pharmaceutical",
+    "drug",
+    "medicine",
+    "vaccine",
+    "antibiotic",
 
     # Infrastructure
     "airport",
-    "rail",
     "bridge",
-    "power",
     "pipeline",
+    "power grid",
+    "electricity",
 
     # Natural disasters
     "earthquake",
     "flood",
     "cyclone",
     "hurricane",
-    "wildfire",
+    "typhoon",
     "tsunami",
+    "wildfire",
     "volcano",
 
     # Health
     "pandemic",
     "epidemic",
-    "disease",
+    "outbreak",
 
     # Energy
     "oil",
     "gas",
+    "lng",
+    "refinery",
     "energy",
-
-    # Pharma
-    "pharmaceutical",
-    "medicine",
-    "drug",
-    "api",
-    "chemical",
 }
 
+# ==========================================================
+# Strong Exclusion Rules
+# ==========================================================
 
-# --------------------------------------------------
-# Check whether article is obvious noise.
-# --------------------------------------------------
+EXCLUDED_PHRASES = {
+
+    "football club",
+    "movie review",
+    "album review",
+    "celebrity news",
+    "match report",
+    "live score",
+    "stock recommendation",
+    "price target",
+}
+
+# ==========================================================
+# Noise Detection
+# ==========================================================
 
 def is_noise(article: RawArticle) -> bool:
 
     text = (
         f"{article.title} "
-        f"{article.description}"
+        f"{article.description or ''}"
     ).lower()
 
-    return any(
+    if any(
+        phrase in text
+        for phrase in EXCLUDED_PHRASES
+    ):
+        return True
+
+    if any(
         keyword in text
         for keyword in NOISE_KEYWORDS
-    )
+    ):
+        return True
+
+    return False
 
 
-# --------------------------------------------------
-# Check whether article appears relevant for
-# supply chain analysis.
-# --------------------------------------------------
+# ==========================================================
+# Supply Chain Detection
+# ==========================================================
 
 def is_potential_supply_chain_event(
     article: RawArticle,
@@ -174,18 +204,22 @@ def is_potential_supply_chain_event(
 
     text = (
         f"{article.title} "
-        f"{article.description}"
+        f"{article.description or ''}"
     ).lower()
 
-    return any(
-        keyword in text
-        for keyword in IMPORTANT_KEYWORDS
-    )
+    score = 0
+
+    for keyword in IMPORTANT_KEYWORDS:
+
+        if keyword in text:
+            score += 1
+
+    return score >= 2
 
 
-# --------------------------------------------------
-# Main filter used before Gemini.
-# --------------------------------------------------
+# ==========================================================
+# Filter
+# ==========================================================
 
 def filter_articles(
     articles: List[RawArticle],
@@ -193,14 +227,26 @@ def filter_articles(
 
     filtered = []
 
+    seen_titles = set()
+
     for article in articles:
 
-        # Skip obvious junk
+        if not article.title:
+            continue
+
+        title = article.title.lower().strip()
+
+        if title in seen_titles:
+            continue
+
+        seen_titles.add(title)
+
         if is_noise(article):
             continue
 
-        # Keep articles that are likely useful
         if is_potential_supply_chain_event(article):
             filtered.append(article)
+
+    print(f"\nArticles after Noise Filter: {len(filtered)}")
 
     return filtered

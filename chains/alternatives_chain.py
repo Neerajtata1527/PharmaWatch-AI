@@ -9,6 +9,7 @@ from prompts.alternatives_prompt import ALTERNATIVES_PROMPT
 from models.alternatives_schema import AlternativesReport
 
 
+
 # ==========================================================
 # Prompt
 # ==========================================================

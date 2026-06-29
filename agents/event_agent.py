@@ -5,6 +5,9 @@ from models.event_schema import EventReport
 
 from chains.event_chain import classify_article
 from utils.noise_filter import filter_articles
+from utils.parallel import run_parallel
+
+from config import MAX_PARALLEL_WORKERS
 
 
 class EventAgent:
@@ -15,61 +18,74 @@ class EventAgent:
     ----------------
     1. Receive raw news articles.
     2. Remove obvious noise.
-    3. Classify remaining articles using Gemini.
+    3. Classify remaining articles using the LLM.
     4. Filter irrelevant events.
-    5. Return structured EventReports.
+    5. Execute classifications in parallel.
     """
+
+    def _process_single_article(
+        self,
+        article: RawArticle,
+    ) -> EventReport | None:
+
+        try:
+
+            print(f"\nProcessing : {article.title}")
+
+            event = classify_article(article)
+
+            if event.relevant:
+
+                print("✓ Relevant")
+                return event
+
+            print("✗ Not Relevant")
+            return None
+
+        except Exception as e:
+
+            print(
+                f"\nFailed to classify article\n"
+                f"Title  : {article.title}\n"
+                f"Reason : {e}\n"
+            )
+
+            return None
 
     def process_articles(
         self,
         articles: List[RawArticle],
     ) -> List[EventReport]:
 
-        # -----------------------------
-        # Noise Filtering
-        # -----------------------------
-
         articles = filter_articles(articles)
 
         print(f"\nArticles after Noise Filter: {len(articles)}")
 
-        relevant_events: List[EventReport] = []
+        if not articles:
+            return []
 
-        # -----------------------------
-        # Event Classification
-        # -----------------------------
+        print(
+            f"\nRunning {len(articles)} article classifications "
+            f"using up to {MAX_PARALLEL_WORKERS} worker threads...\n"
+        )
 
-        for index, article in enumerate(articles, start=1):
+        relevant_events = run_parallel(
+            items=articles,
+            worker=self._process_single_article,
+            max_workers=MAX_PARALLEL_WORKERS,
+        )
 
-            print(
-                f"\n[{index}/{len(articles)}] Processing:\n"
-                f"{article.title}"
-            )
-
-            try:
-
-                event = classify_article(article)
-
-                if event.relevant:
-
-                    relevant_events.append(event)
-
-                    print("✓ Relevant")
-
-                else:
-
-                    print("✗ Not Relevant")
-
-            except Exception as e:
-
-                print(
-                    f"\nFailed to classify article:\n"
-                    f"{article.title}\n"
-                    f"Reason: {e}\n"
-                )
+        print(
+            f"\n✓ Event Agent completed."
+            f"\nRelevant Events Found : {len(relevant_events)}\n"
+        )
 
         return relevant_events
 
+
+# ==========================================================
+# Testing
+# ==========================================================
 
 if __name__ == "__main__":
 

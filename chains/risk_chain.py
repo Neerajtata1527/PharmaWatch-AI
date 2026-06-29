@@ -10,6 +10,7 @@ from models.research_schema import ResearchReport
 from models.risk_schema import RiskReport
 
 
+
 # ==========================================================
 # Prompt
 # ==========================================================

@@ -343,7 +343,7 @@ PharmaWatch-AI/
 ## Clone Repository
 
 ```bash
-git clone https://github.com/Ram310105/PharmaWatch-AI.git
+git clone https://github.com/Neerajtata1527/PharmaWatch-AI
 cd PharmaWatch-AI
 ```
 

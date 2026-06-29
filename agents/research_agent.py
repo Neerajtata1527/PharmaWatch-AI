@@ -6,6 +6,10 @@ from models.research_schema import ResearchReport
 from services.research_service import ResearchService
 from chains.research_chain import research_event
 
+from utils.parallel import run_parallel
+
+from config import MAX_PARALLEL_WORKERS
+
 
 class ResearchAgent:
     """
@@ -16,66 +20,69 @@ class ResearchAgent:
     1. Receive verified EventReports.
     2. Collect supporting evidence from Tavily.
     3. Generate structured ResearchReports.
-    4. Return all research reports.
+    4. Execute multiple research tasks in parallel.
     """
 
     def __init__(self):
 
         self.research_service = ResearchService()
 
+    def _process_single_event(
+        self,
+        event: EventReport,
+    ) -> ResearchReport | None:
+
+        try:
+
+            print("\n" + "=" * 100)
+            print(f"Researching : {event.headline}")
+            print("=" * 100)
+
+            evidence = self.research_service.collect(event)
+
+            print("✓ Evidence collected")
+
+            report = research_event(
+                event,
+                evidence,
+            )
+
+            print("✓ Research report generated")
+
+            return report
+
+        except Exception as e:
+
+            print(
+                f"\nResearch failed\n"
+                f"Headline : {event.headline}\n"
+                f"Reason   : {e}\n"
+            )
+
+            return None
+
     def process_events(
         self,
         events: List[EventReport],
     ) -> List[ResearchReport]:
 
-        reports: List[ResearchReport] = []
-
         if not events:
-            return reports
+            return []
 
-        total = len(events)
+        print(
+            f"\nRunning {len(events)} research tasks "
+            f"using up to {MAX_PARALLEL_WORKERS} worker threads...\n"
+        )
 
-        for index, event in enumerate(events, start=1):
+        reports = run_parallel(
+            items=events,
+            worker=self._process_single_event,
+            max_workers=MAX_PARALLEL_WORKERS,
+        )
 
-            print("\n" + "=" * 100)
-            print(f"[{index}/{total}] Researching Event")
-            print("=" * 100)
-
-            print(f"Headline : {event.headline}")
-            print(f"Type     : {event.event_type}")
-            print(f"Location : {event.location}")
-            print()
-
-            try:
-
-                # ----------------------------------------
-                # Retrieve supporting evidence
-                # ----------------------------------------
-
-                evidence = self.research_service.collect(event)
-
-                print("✓ Evidence collected")
-
-                # ----------------------------------------
-                # Generate Research Report
-                # ----------------------------------------
-
-                report = research_event(
-                    event,
-                    evidence,
-                )
-
-                reports.append(report)
-
-                print("✓ Research report generated")
-
-            except Exception as e:
-
-                print(
-                    f"\nResearch failed:\n"
-                    f"{event.headline}\n"
-                    f"Reason: {e}\n"
-                )
+        print(
+            f"\n✓ Generated {len(reports)} research reports.\n"
+        )
 
         return reports
 
@@ -88,12 +95,7 @@ if __name__ == "__main__":
 
     from services.news_service import NewsService
     from services.gdelt_service import GDELTService
-
     from agents.event_agent import EventAgent
-
-    # ------------------------------------------------------
-    # Fetch News
-    # ------------------------------------------------------
 
     news_service = NewsService()
     gdelt_service = GDELTService()
@@ -105,10 +107,6 @@ if __name__ == "__main__":
 
     print(f"\nFetched {len(articles)} articles.")
 
-    # ------------------------------------------------------
-    # Event Detection
-    # ------------------------------------------------------
-
     event_agent = EventAgent()
 
     events = event_agent.process_articles(articles)
@@ -118,17 +116,9 @@ if __name__ == "__main__":
     if not events:
         raise SystemExit("No relevant events found.")
 
-    # ------------------------------------------------------
-    # Research Agent
-    # ------------------------------------------------------
-
     research_agent = ResearchAgent()
 
     reports = research_agent.process_events(events)
-
-    # ------------------------------------------------------
-    # Results
-    # ------------------------------------------------------
 
     print("\n")
     print("=" * 100)
